@@ -27,7 +27,7 @@ SYSTEM_PROMPT = """
 """
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-pro-latest",
+    model_name="gemini-1.5-pro",         # 👈 이렇게 고치세요!
     system_instruction=SYSTEM_PROMPT
 )
 
