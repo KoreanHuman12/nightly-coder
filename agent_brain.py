@@ -35,7 +35,7 @@ SYSTEM_PROMPT = """
 # [중요] 가장 안정적인 모델 이름 사용 (gemini-1.5-flash)
 # 만약 이것도 안 되면 로그에 출력된 모델 이름 중 하나로 바꿔야 함
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", 
+    model_name="gemini-2.0-flash",  # 👈 로그에 있는 확실한 이름!
     system_instruction=SYSTEM_PROMPT
 )
 
