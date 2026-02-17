@@ -1,0 +1,46 @@
+name: Nightly Autonomous Agent
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # 한국 시간 새벽 4시 자동 실행
+  workflow_dispatch: # 수동 실행 버튼
+
+jobs:
+  coding-session:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0
+
+      - name: 🐍 Python 설치
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 📦 라이브러리 설치
+        run: pip install -r requirements.txt
+
+      - name: 🤖 에이전트 실행
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python agent_brain.py
+
+      - name: 💾 결과 저장 (Git Push)
+        run: |
+          git config --global user.name "Nightly Agent"
+          git config --global user.email "agent@bot.com"
+          git pull --rebase origin main || git pull origin main
+          git add .
+          if git diff --staged --quiet; then
+            echo "변경 사항 없음"
+          else
+            git commit -m "🤖 Nightly Work Result [$(date)]"
+            git push origin main
+          fi
