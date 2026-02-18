@@ -14,20 +14,17 @@ TODAY_BRANCH = f"nightly-{datetime.now().strftime('%Y-%m-%d')}"
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- [AI 페르소나 및 지침] ---
+# --- [AI 페르소나] ---
 SYSTEM_PROMPT = """
 You are the 'Nightly Autonomous Architect'.
 Your goal is to write clean, safe, and optimized code using a Strict TDD approach.
 
 [Core Process]
-1. Plan-and-Solve: NEVER code immediately. Create 'docs/PLAN.md' first.
-2. Strict TDD: 
-   - Write failing tests in 'tests/' folder FIRST.
-   - Then implement code in 'src/' to pass tests.
-   - Finally, Refactor and Optimize (e.g., O(n^2) -> O(n log n)).
-3. Git Safety: Create a new branch for every run. NEVER push to main directly.
-4. Safety Guardrail: DO NOT use dangerous commands (rm -rf). Use Python 'os' or 'shutil' modules.
-5. Auto-Documentation: Update 'README.md' and 'requirements.txt' after work.
+1. Plan-and-Solve: Create 'docs/PLAN.md' first.
+2. Strict TDD: Write failing tests in 'tests/' first, then code in 'src/'.
+3. Git Safety: Work on branch. NEVER push to main directly.
+4. Safety Guardrail: No dangerous commands (rm -rf).
+5. Auto-Documentation: Update README.md after work.
 
 [Output Format]
 ### FILE: path/to/filename.ext
@@ -37,26 +34,26 @@ Your goal is to write clean, safe, and optimized code using a Strict TDD approac
 """
 
 model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash",
+    model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_PROMPT
 )
 
 
 # --- [핵심 함수] ---
 
-def send_message_with_retry(chat, prompt, max_retries=30):
-    wait_time = 60
+def send_message_with_retry(chat, prompt, max_retries=3):
+    wait_time = 10
     for attempt in range(max_retries):
         try:
             return chat.send_message(prompt)
         except exceptions.ResourceExhausted:
             print(f"⚠️ Quota Exceeded. Waiting {wait_time}s... ({attempt+1}/{max_retries})")
             time.sleep(wait_time)
-            wait_time = min(wait_time + 10, 300)
+            wait_time += 10
         except Exception as e:
             print(f"❌ Error: {e}. Waiting 10s...")
             time.sleep(10)
-    raise Exception("💀 Failed after 30 retries.")
+    raise Exception("💀 Failed after 3 retries. Check API Key or Model.")
 
 
 def setup_git_branch():
@@ -133,28 +130,28 @@ def send_discord(msg):
 # --- [메인 실행 로직] ---
 
 def main():
-    print("🚀 Nightly Autonomous Agent Started (Ultimate TDD Mode)")
+    print("🚀 Nightly Autonomous Agent Started (Stable 1.5 Mode)")
     setup_git_branch()
 
     repo_context = read_repository_structure()
     chat = model.start_chat(history=[])
 
     # 1. Plan Phase
-    print("🤔 Step 1: Planning & Analysis...")
+    print("🤔 Step 1: Planning...")
     plan_prompt = f"""
 [Project Context]
 {repo_context}
 
 [Mission]
 1. Analyze the structure.
-2. Identify optimization points or bugs.
-3. Create 'docs/PLAN.md' with a detailed TDD plan.
+2. Identify optimization points.
+3. Create 'docs/PLAN.md' with a TDD plan.
 """
     res1 = send_message_with_retry(chat, plan_prompt)
     extract_and_save_code(res1.text)
 
     # 2. TDD & Coding Phase
-    print("🛠️ Step 2: TDD Cycle (Test -> Code -> Optimize)...")
+    print("🛠️ Step 2: TDD Cycle...")
     tdd_prompt = """
 Execute the plan.
 1. Write failing tests in 'tests/' folder.
@@ -164,7 +161,7 @@ Execute the plan.
     res2 = send_message_with_retry(chat, tdd_prompt)
     files = extract_and_save_code(res2.text)
 
-    # 3. Validation & Self-Correction
+    # 3. Validation
     status_msg = "Work Complete"
     if files:
         passed, log = run_tests()
@@ -183,20 +180,19 @@ Execute the plan.
             else:
                 status_msg = "❌ Fix failed. Human review needed."
 
-    # 4. Documentation Phase
-    print("📚 Step 4: Auto-Documentation...")
-    doc_prompt = "Update 'README.md' and 'requirements.txt' based on changes."
+    # 4. Documentation
+    print("📚 Step 4: Documentation...")
+    doc_prompt = "Update 'README.md' based on changes."
     res4 = send_message_with_retry(chat, doc_prompt)
     extract_and_save_code(res4.text)
 
-    # 5. Git Push & Report
+    # 5. Push
     if push_changes():
         final_report = f"""
-**Nightly Report (Ultimate TDD)**
+**Nightly Report**
 - Branch: `{TODAY_BRANCH}`
 - Status: {status_msg}
 - Plan: `docs/PLAN.md`
-- Next Step: Human Review & Merge
 """
         send_discord(final_report)
     else:
