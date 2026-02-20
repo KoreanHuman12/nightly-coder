@@ -28,4 +28,5 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: python agent_brain.py
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python agent_brain.py  # <--- 이름을 똑같이 맞춰줬습니다!
